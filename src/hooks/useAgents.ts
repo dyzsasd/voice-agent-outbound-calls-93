@@ -23,9 +23,15 @@ export const useAgents = () => {
 
   const createAgent = useMutation({
     mutationFn: async ({ name, elevenlabsAgentId }: { name: string; elevenlabsAgentId: string }) => {
+      if (!user?.id) throw new Error("User must be logged in to create an agent");
+      
       const { data, error } = await supabase
         .from("agents")
-        .insert({ name, elevenlabs_agent_id: elevenlabsAgentId })
+        .insert({ 
+          name, 
+          elevenlabs_agent_id: elevenlabsAgentId,
+          user_id: user.id
+        })
         .select()
         .single();
 
