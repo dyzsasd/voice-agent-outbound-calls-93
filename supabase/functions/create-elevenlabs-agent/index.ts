@@ -34,6 +34,8 @@ serve(async (req) => {
       throw new Error('Name is required')
     }
 
+    // According to ElevenLabs API documentation for creating assistant
+    // https://api.elevenlabs.io/docs#/voice-assistants/create_ai_assistant_v1_assistants_post
     console.log(`Sending request to ElevenLabs API to create agent: ${name}`)
     const response = await fetch('https://api.elevenlabs.io/v1/assistants', {
       method: 'POST',
@@ -42,10 +44,14 @@ serve(async (req) => {
         'xi-api-key': apiKey,
       },
       body: JSON.stringify({
-        name,
+        name: name,
         description: `Voice agent named ${name}`,
+        // Added additional required fields based on ElevenLabs API
+        initial_message: `Hi, I'm ${name}. How can I help you today?`,
+        voice_id: "21m00Tcm4TlvDq8ikWAM", // Default voice Rachel
+        model_id: "eleven_multilingual_v2", // Modern multilingual model
       }),
-    })
+    });
 
     // Log response status
     console.log(`ElevenLabs API response status: ${response.status}`)
@@ -92,4 +98,3 @@ serve(async (req) => {
     )
   }
 })
-
