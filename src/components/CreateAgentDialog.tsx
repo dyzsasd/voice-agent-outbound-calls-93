@@ -7,27 +7,44 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAgents } from "@/hooks/useAgents";
 import { PlusCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CreateAgentDialog() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const { createAgent } = useAgents();
   const [name, setName] = useState("");
-  const [elevenlabsAgentId, setElevenlabsAgentId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     try {
-      await createAgent.mutateAsync({ name, elevenlabsAgentId });
+      // Create ElevenLabs agent
+      const { data: elevenlabsAgent, error: elevenlabsError } = await supabase.functions.invoke('create-elevenlabs-agent', {
+        body: { name }
+      });
+
+      if (elevenlabsError) throw new Error(elevenlabsError.message);
+
+      // Create agent in our database
+      await createAgent.mutateAsync({ 
+        name, 
+        elevenlabsAgentId: elevenlabsAgent.id 
+      });
+
       toast({ title: "Agent created successfully" });
       setOpen(false);
       setName("");
-      setElevenlabsAgentId("");
     } catch (error) {
       toast({
         title: "Failed to create agent",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -54,18 +71,8 @@ export function CreateAgentDialog() {
               required
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="elevenlabsAgentId">ElevenLabs Agent ID</Label>
-            <Input
-              id="elevenlabsAgentId"
-              value={elevenlabsAgentId}
-              onChange={(e) => setElevenlabsAgentId(e.target.value)}
-              placeholder="Enter ElevenLabs Agent ID"
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={createAgent.isPending}>
-            Create Agent
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating..." : "Create Agent"}
           </Button>
         </form>
       </DialogContent>
