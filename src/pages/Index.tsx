@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +31,12 @@ const Index = () => {
             </div>
           </div>
         </section>
+
+        <div className="text-center mb-8">
+          <Button asChild className="mx-auto">
+            <a href="/auth">Get Started</a>
+          </Button>
+        </div>
 
         <section className="max-w-xl mx-auto">
           <h2 className="text-3xl font-bold mb-8 text-center">Contact Us</h2>
