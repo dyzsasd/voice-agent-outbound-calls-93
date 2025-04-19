@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,11 +46,11 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
 
     // Validate model for non-English languages
     if (language !== "en") {
-      // Check if the model is compatible with non-English languages
-      if (!multilanguageModels.includes(llmModel)) {
+      // For non-English languages, ElevenLabs requires either eleven_turbo_v2 or eleven_turbo_v2_5
+      if (!nonEnglishCompatibleModels.includes(llmModel)) {
         toast({
           title: "Validation Error",
-          description: "Selected model doesn't support non-English languages",
+          description: "Non-English agents must use eleven_turbo_v2 or eleven_turbo_v2_5 models",
           variant: "destructive"
         });
         return;
@@ -61,24 +62,18 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
 
   // Update LLM model when language changes
   useEffect(() => {
-    if (language !== "en" && !multilanguageModels.includes(llmModel)) {
-      setLlmModel("gpt-4o-mini"); // Default to a multilanguage model
+    if (language !== "en" && !nonEnglishCompatibleModels.includes(llmModel)) {
+      setLlmModel("eleven_turbo_v2"); // Default to a compatible model for non-English
     }
   }, [language, llmModel]);
 
-  const multilanguageModels = [
-    "gpt-4o-mini",
-    "gpt-4o",
-    "gpt-4",
-    "gpt-4-turbo",
-    "gemini-2.0-flash-001",
-    "gemini-2.0-flash-lite",
-    "claude-3-7-sonnet",
-    "claude-3-5-sonnet",
-    "claude-3-5-sonnet-v1",
-    "claude-3-haiku"
+  // Multi-language models according to ElevenLabs API restrictions
+  const nonEnglishCompatibleModels = [
+    "eleven_turbo_v2",
+    "eleven_turbo_v2_5"
   ];
 
+  // All available models
   const availableModels = [
     "gpt-4o-mini",
     "gpt-4o",
@@ -95,7 +90,9 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
     "claude-3-5-sonnet-v1",
     "claude-3-haiku",
     "grok-beta",
-    "custom-llm"
+    "custom-llm",
+    "eleven_turbo_v2",
+    "eleven_turbo_v2_5"
   ];
 
   const languages = [
@@ -149,9 +146,9 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
             </SelectGroup>
           </SelectContent>
         </Select>
-        {language !== "en" && !multilanguageModels.includes(llmModel) && (
+        {language !== "en" && (
           <p className="text-xs text-amber-600 mt-1">
-            Selected model does not support non-English languages
+            Non-English agents require eleven_turbo_v2 or eleven_turbo_v2_5 model
           </p>
         )}
       </div>
@@ -171,9 +168,9 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
                 <SelectItem 
                   key={model} 
                   value={model}
-                  disabled={language !== "en" && !multilanguageModels.includes(model)}
+                  disabled={language !== "en" && !nonEnglishCompatibleModels.includes(model)}
                 >
-                  {model} {language !== "en" && !multilanguageModels.includes(model) ? "(English only)" : ""}
+                  {model} {language !== "en" && !nonEnglishCompatibleModels.includes(model) ? "(English only)" : ""}
                 </SelectItem>
               ))}
             </SelectGroup>

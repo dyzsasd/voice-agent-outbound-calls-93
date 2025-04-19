@@ -27,8 +27,45 @@ serve(async (req) => {
       throw new Error('ELEVENLABS_API_KEY is not configured')
     }
 
+    // Only send the necessary fields to the ElevenLabs API
+    const minimalUpdates = {}
+    
+    if (updates.conversation_config?.agent) {
+      minimalUpdates.conversation_config = { agent: {} }
+      
+      // Handle prompt and LLM model
+      if (updates.conversation_config.agent.prompt) {
+        minimalUpdates.conversation_config.agent.prompt = {}
+        
+        if (updates.conversation_config.agent.prompt.prompt !== undefined) {
+          minimalUpdates.conversation_config.agent.prompt.prompt = updates.conversation_config.agent.prompt.prompt
+        }
+        
+        if (updates.conversation_config.agent.prompt.llm !== undefined) {
+          minimalUpdates.conversation_config.agent.prompt.llm = updates.conversation_config.agent.prompt.llm
+        }
+      }
+      
+      // Handle first message
+      if (updates.conversation_config.agent.first_message !== undefined) {
+        minimalUpdates.conversation_config.agent.first_message = updates.conversation_config.agent.first_message
+      }
+      
+      // Handle language
+      if (updates.conversation_config.agent.language !== undefined) {
+        minimalUpdates.conversation_config.agent.language = updates.conversation_config.agent.language
+      }
+    }
+
     console.log(`Updating agent with ID: ${elevenlabs_agent_id}`)
-    console.log(`Update payload:`, JSON.stringify(updates, null, 2))
+    console.log(`Minimal update payload:`, JSON.stringify(minimalUpdates, null, 2))
+
+    // Log the actual request we're about to send to ElevenLabs
+    console.log(`ElevenLabs API request:`, JSON.stringify({
+      method: 'PATCH',
+      url: `https://api.elevenlabs.io/v1/convai/agents/${elevenlabs_agent_id}`,
+      body: minimalUpdates
+    }, null, 2))
 
     const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${elevenlabs_agent_id}`, {
       method: 'PATCH',
@@ -36,7 +73,7 @@ serve(async (req) => {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(updates)
+      body: JSON.stringify(minimalUpdates)
     })
 
     const responseData = await response.text()
