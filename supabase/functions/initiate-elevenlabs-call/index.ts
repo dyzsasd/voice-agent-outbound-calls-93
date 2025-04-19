@@ -28,6 +28,13 @@ serve(async (req) => {
     const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY') || '';
 
     if (!elevenlabsApiKey) {
+      // Update task status to failed if API key is missing
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      await supabase
+        .from('tasks')
+        .update({ status: 'failed' })
+        .eq('id', taskId);
+
       return new Response(
         JSON.stringify({ error: "ElevenLabs API key is not configured" }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,6 +52,12 @@ serve(async (req) => {
       .single();
 
     if (agentError || !agentData) {
+      // Update task status to failed if agent fetch fails
+      await supabase
+        .from('tasks')
+        .update({ status: 'failed' })
+        .eq('id', taskId);
+
       console.error('Error fetching agent:', agentError);
       return new Response(
         JSON.stringify({ error: "Failed to fetch agent information" }),
@@ -59,6 +72,12 @@ serve(async (req) => {
       .single();
 
     if (profileError) {
+      // Update task status to failed if profile fetch fails
+      await supabase
+        .from('tasks')
+        .update({ status: 'failed' })
+        .eq('id', taskId);
+
       console.error('Error fetching profile:', profileError);
       return new Response(
         JSON.stringify({ error: "Failed to fetch phone number information" }),
@@ -69,6 +88,12 @@ serve(async (req) => {
     const agentPhoneNumberId = profileData?.phone_number;
 
     if (!agentPhoneNumberId) {
+      // Update task status to failed if phone number is missing
+      await supabase
+        .from('tasks')
+        .update({ status: 'failed' })
+        .eq('id', taskId);
+
       return new Response(
         JSON.stringify({ error: "Agent phone number ID not found" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -81,55 +106,75 @@ serve(async (req) => {
       to_number: phoneNumber
     });
 
-    // Call the ElevenLabs API to initiate the outbound call
-    const response = await fetch('https://api.elevenlabs.io/v1/convai/twilio/outbound_call', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': elevenlabsApiKey
-      },
-      body: JSON.stringify({
-        agent_id: agentData.elevenlabs_agent_id,
-        agent_phone_number_id: agentPhoneNumberId,
-        to_number: phoneNumber
-      })
-    });
+    try {
+      // Call the ElevenLabs API to initiate the outbound call
+      const response = await fetch('https://api.elevenlabs.io/v1/convai/twilio/outbound_call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'xi-api-key': elevenlabsApiKey
+        },
+        body: JSON.stringify({
+          agent_id: agentData.elevenlabs_agent_id,
+          agent_phone_number_id: agentPhoneNumberId,
+          to_number: phoneNumber
+        })
+      });
 
-    const elevenlabsData = await response.json();
+      const elevenlabsData = await response.json();
 
-    if (!response.ok) {
-      console.error('ElevenLabs API error:', elevenlabsData);
+      if (!response.ok) {
+        // Update task status to failed if ElevenLabs API call fails
+        await supabase
+          .from('tasks')
+          .update({ status: 'failed' })
+          .eq('id', taskId);
+
+        console.error('ElevenLabs API error:', elevenlabsData);
+        return new Response(
+          JSON.stringify({ error: "Failed to initiate call via ElevenLabs API", details: elevenlabsData }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Update the task with the conversation ID and status
+      const { error: updateError } = await supabase
+        .from('tasks')
+        .update({
+          elevenlabs_conversation_id: elevenlabsData.callSid || null,
+          status: 'processing'
+        })
+        .eq('id', taskId);
+
+      if (updateError) {
+        console.error('Error updating task:', updateError);
+        return new Response(
+          JSON.stringify({ error: "Failed to update task status", details: updateError }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
-        JSON.stringify({ error: "Failed to initiate call via ElevenLabs API", details: elevenlabsData }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: true, 
+          message: "Call initiated successfully",
+          callSid: elevenlabsData.callSid
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-    }
+    } catch (error) {
+      // Update task status to failed if ElevenLabs API call throws an error
+      await supabase
+        .from('tasks')
+        .update({ status: 'failed' })
+        .eq('id', taskId);
 
-    // Update the task with the conversation ID and status
-    const { error: updateError } = await supabase
-      .from('tasks')
-      .update({
-        elevenlabs_conversation_id: elevenlabsData.callSid || null,
-        status: 'processing'
-      })
-      .eq('id', taskId);
-
-    if (updateError) {
-      console.error('Error updating task:', updateError);
+      console.error('Error calling ElevenLabs API:', error);
       return new Response(
-        JSON.stringify({ error: "Failed to update task status", details: updateError }),
+        JSON.stringify({ error: error.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Call initiated successfully",
-        callSid: elevenlabsData.callSid
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     console.error('Error in initiate-elevenlabs-call function:', error);
     return new Response(
