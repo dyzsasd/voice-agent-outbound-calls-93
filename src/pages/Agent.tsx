@@ -10,17 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 import { AgentConfigurationForm } from "@/components/AgentConfigurationForm";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PhoneCall } from "lucide-react";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
   const { agents, fetchAgentDetailsFromElevenLabs, updateAgentInElevenLabs } = useAgents();
-  const { tasks, createTask } = useTasks(id);
+  const { tasks, createTask, runTask } = useTasks(id);
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [taskName, setTaskName] = useState("");
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [runningTasks, setRunningTasks] = useState<Record<string, boolean>>({});
 
   const agent = agents?.find((a) => a.id === id);
 
@@ -98,6 +100,21 @@ const Agent = () => {
     }
   };
 
+  const handleRunTask = async (taskId: string, phoneNumber: string) => {
+    if (!id) return;
+
+    setRunningTasks(prev => ({ ...prev, [taskId]: true }));
+    try {
+      await runTask.mutateAsync({
+        taskId,
+        agentId: id,
+        phoneNumber
+      });
+    } finally {
+      setRunningTasks(prev => ({ ...prev, [taskId]: false }));
+    }
+  };
+
   if (!agent) {
     return <div>Agent not found</div>;
   }
@@ -172,12 +189,31 @@ const Agent = () => {
           {tasks?.map((task) => (
             <Card key={task.id}>
               <CardHeader>
-                <CardTitle>Task for {task.to_phone_number}</CardTitle>
+                <CardTitle>{task.name || `Task for ${task.to_phone_number}`}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-between items-center">
-                  <div>Status: {task.status}</div>
-                  <div>Created: {new Date(task.created_at).toLocaleString()}</div>
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-center">
+                    <div>Status: <span className={task.status === 'idle' ? 'text-amber-500' : 
+                                         task.status === 'processing' ? 'text-blue-500' : 
+                                         task.status === 'finished' ? 'text-green-500' : 
+                                         'text-red-500'}>
+                           {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                         </span>
+                    </div>
+                    <div>Created: {new Date(task.created_at).toLocaleString()}</div>
+                  </div>
+                  {task.status === 'idle' && (
+                    <Button 
+                      variant="default" 
+                      onClick={() => handleRunTask(task.id, task.to_phone_number)}
+                      disabled={runningTasks[task.id] || runTask.isPending}
+                      className="mt-2"
+                    >
+                      <PhoneCall className="h-4 w-4 mr-2" />
+                      {runningTasks[task.id] ? 'Initiating Call...' : 'Run Task'}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
