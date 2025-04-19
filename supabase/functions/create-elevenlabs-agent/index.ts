@@ -151,16 +151,14 @@ serve(async (req) => {
       throw new Error('Failed to parse ElevenLabs response')
     }
 
-    // Insert agent into Supabase database
+    // Insert agent into Supabase database - ONLY using the columns that exist in the schema
     console.log(`Creating agent record in Supabase: ${name}, user: ${userId}, elevenlabs_agent_id: ${data.agent_id}`)
     const { data: agentData, error: supabaseError } = await supabase
       .from("agents")
       .insert({ 
         name, 
         elevenlabs_agent_id: data.agent_id,
-        user_id: userId,
-        language,
-        llm_model: llmModel,
+        user_id: userId
       })
       .select()
       .single()

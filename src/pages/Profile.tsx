@@ -47,11 +47,11 @@ const Profile = () => {
                     </div>
                     <div className="flex items-center text-xs">
                       <Globe className="h-3 w-3 mr-1" />
-                      Language: {agent.language || 'English'}
+                      Language: English (default)
                     </div>
                     <div className="flex items-center text-xs truncate">
                       <Code className="h-3 w-3 mr-1 flex-shrink-0" />
-                      Model: {agent.llm_model || 'GPT-4o Mini'}
+                      Model: GPT-4o Mini (default)
                     </div>
                   </CardDescription>
                 </CardHeader>
@@ -75,6 +75,6 @@ const Profile = () => {
       </div>
     </Layout>
   );
-};
+}
 
 export default Profile;

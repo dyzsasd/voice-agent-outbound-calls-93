@@ -57,7 +57,7 @@ interface AgentFormValues {
 export function CreateAgentDialog() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { agents } = useAgents();
+  const { refetch } = useAgents();
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
@@ -98,10 +98,12 @@ export function CreateAgentDialog() {
 
       if (error) throw new Error(error.message);
       
-      // No need to create agent in database, it's done in the edge function
       toast({ title: "Agent created successfully" });
       setOpen(false);
       form.reset();
+      
+      // Refresh the agents list
+      refetch();
     } catch (error) {
       console.error('Error creating agent:', error);
       toast({
