@@ -1,8 +1,8 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 export const useTasks = (agentId?: string) => {
   const { user } = useAuth();
@@ -95,10 +95,41 @@ export const useTasks = (agentId?: string) => {
     }
   });
 
+  const syncConversations = useMutation({
+    mutationFn: async (agentId: string) => {
+      const { data, error } = await supabase.functions.invoke('sync-conversations', {
+        body: { agent_id: agentId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to sync conversations",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    }
+  });
+
+  useEffect(() => {
+    if (tasks?.some(task => task.status === 'processing') && agentId) {
+      const interval = setInterval(() => {
+        syncConversations.mutate(agentId);
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [tasks, agentId]);
+
   return {
     tasks,
     isLoading,
     createTask,
-    runTask
+    runTask,
+    syncConversations
   };
 };

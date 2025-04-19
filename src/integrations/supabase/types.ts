@@ -36,6 +36,63 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          agent_id: string
+          analysis: Json | null
+          call_id: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          status: string
+          task_id: string | null
+          transcript: Json | null
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          analysis?: Json | null
+          call_id?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status: string
+          task_id?: string | null
+          transcript?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          analysis?: Json | null
+          call_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          task_id?: string | null
+          transcript?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
