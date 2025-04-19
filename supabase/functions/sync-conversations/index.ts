@@ -112,7 +112,7 @@ serve(async (req) => {
           if (!detailResponse.ok) {
             const detailErrorText = await detailResponse.text();
             console.error(`Error fetching conversation details: ${detailErrorText}`);
-            continue; // Skip this conversation but continue with others
+            continue;
           }
 
           const detail = await detailResponse.json();
@@ -134,6 +134,23 @@ serve(async (req) => {
 
           console.log(`Associated task ID: ${tasks?.id || 'none'}`);
 
+          // Map ElevenLabs conversation status to task status
+          let taskStatus;
+          switch (detail.status.toLowerCase()) {
+            case 'completed':
+              taskStatus = 'finished';
+              break;
+            case 'failed':
+              taskStatus = 'failed';
+              break;
+            case 'in_progress':
+            case 'processing':
+              taskStatus = 'processing';
+              break;
+            default:
+              taskStatus = 'idle';
+          }
+
           // Insert new conversation
           const { error: insertError } = await supabase
             .from('conversations')
@@ -152,20 +169,23 @@ serve(async (req) => {
             console.error(`Error inserting conversation ${conv.conversation_id}:`, insertError);
           } else {
             console.log(`Successfully inserted conversation: ${conv.conversation_id}`);
-            newConversations.push(conv.conversation_id);
           }
 
-          // Update task with conversation_id if found
+          // Update task with conversation_id and new status if found
           if (tasks?.id) {
+            console.log(`Updating task ${tasks.id} status to: ${taskStatus}`);
             const { error: updateError } = await supabase
               .from('tasks')
-              .update({ conversation_id: conv.conversation_id })
+              .update({ 
+                conversation_id: conv.conversation_id,
+                status: taskStatus 
+              })
               .eq('id', tasks.id);
               
             if (updateError) {
               console.error(`Error updating task ${tasks.id}:`, updateError);
             } else {
-              console.log(`Successfully updated task ${tasks.id} with conversation_id ${conv.conversation_id}`);
+              console.log(`Successfully updated task ${tasks.id} with conversation_id ${conv.conversation_id} and status ${taskStatus}`);
             }
           }
         } catch (convError) {
