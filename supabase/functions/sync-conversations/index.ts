@@ -32,7 +32,22 @@ serve(async (req) => {
       throw new Error('Missing agent_id parameter');
     }
 
-    console.log(`Syncing conversations for agent_id: ${agent_id}`);
+    console.log(`Syncing conversations for agent_id (Supabase ID): ${agent_id}`);
+
+    // Get the ElevenLabs agent ID from the Supabase agent ID
+    const { data: agentData, error: agentError } = await supabase
+      .from('agents')
+      .select('elevenlabs_agent_id')
+      .eq('id', agent_id)
+      .single();
+
+    if (agentError || !agentData?.elevenlabs_agent_id) {
+      console.error('Error fetching ElevenLabs agent ID:', agentError || 'No elevenlabs_agent_id found');
+      throw new Error('Could not find ElevenLabs agent ID');
+    }
+
+    const elevenlabsAgentId = agentData.elevenlabs_agent_id;
+    console.log(`Found ElevenLabs agent ID: ${elevenlabsAgentId}`);
 
     // Fetch existing conversations for this agent from our database
     const { data: existingConversations, error: dbError } = await supabase
@@ -49,11 +64,11 @@ serve(async (req) => {
     const existingIds = new Set(existingConversations?.map(c => c.conversation_id) || []);
 
     // Log the API request we're about to make
-    console.log(`Fetching conversations from ElevenLabs API for agent_id: ${agent_id}`);
-    console.log(`API URL: https://api.elevenlabs.io/v1/convai/conversations?agent_id=${agent_id}`);
+    console.log(`Fetching conversations from ElevenLabs API for elevenlabs_agent_id: ${elevenlabsAgentId}`);
+    console.log(`API URL: https://api.elevenlabs.io/v1/convai/conversations?agent_id=${elevenlabsAgentId}`);
 
-    // Fetch conversations from ElevenLabs API
-    const response = await fetch('https://api.elevenlabs.io/v1/convai/conversations?agent_id=' + agent_id, {
+    // Fetch conversations from ElevenLabs API using the elevenlabs_agent_id
+    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${elevenlabsAgentId}`, {
       headers: {
         'xi-api-key': elevenlabsApiKey,
       },
