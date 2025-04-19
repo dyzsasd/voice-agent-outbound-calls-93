@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
@@ -8,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { AgentConfigurationForm } from "@/components/AgentConfigurationForm";
+import { Button } from "@/components/ui/button";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
