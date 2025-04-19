@@ -12,6 +12,7 @@ import { PlusCircle, Mic, Globe, Code, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm, Controller } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
+import { useAuth } from "@/components/AuthProvider";
 
 // Supported languages with their display names
 const LANGUAGES = [
@@ -56,8 +57,9 @@ interface AgentFormValues {
 export function CreateAgentDialog() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { createAgent } = useAgents();
+  const { agents } = useAgents();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const form = useForm<AgentFormValues>({
     defaultValues: {
@@ -70,34 +72,38 @@ export function CreateAgentDialog() {
   });
 
   const handleSubmit = async (values: AgentFormValues) => {
+    if (!user?.id) {
+      toast({ 
+        title: "Authentication required", 
+        description: "You must be logged in to create an agent", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      // Create ElevenLabs agent
-      const { data: elevenlabsAgent, error: elevenlabsError } = await supabase.functions.invoke('create-elevenlabs-agent', {
+      // Create ElevenLabs agent and insert into Supabase in one call
+      const { data, error } = await supabase.functions.invoke('create-elevenlabs-agent', {
         body: { 
           name: values.name,
           firstMessage: values.firstMessage || `Hi, I'm ${values.name}. How can I help you today?`,
           language: values.language,
           prompt: values.prompt,
-          llmModel: values.llmModel
+          llmModel: values.llmModel,
+          userId: user.id  // Send the user ID to the edge function
         }
       });
 
-      if (elevenlabsError) throw new Error(elevenlabsError.message);
-
-      // Create agent in our database
-      await createAgent.mutateAsync({ 
-        name: values.name, 
-        elevenlabsAgentId: elevenlabsAgent.agent_id,
-        language: values.language,
-        llmModel: values.llmModel
-      });
-
+      if (error) throw new Error(error.message);
+      
+      // No need to create agent in database, it's done in the edge function
       toast({ title: "Agent created successfully" });
       setOpen(false);
       form.reset();
     } catch (error) {
+      console.error('Error creating agent:', error);
       toast({
         title: "Failed to create agent",
         description: error instanceof Error ? error.message : "Unknown error occurred",

@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +36,17 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY are not configured')
+      throw new Error('Supabase credentials are not configured')
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    
     // Check for API key presence
     const apiKey = Deno.env.get('ELEVENLABS_API_KEY')
     console.log(`API key present: ${!!apiKey}`)
@@ -53,12 +65,18 @@ serve(async (req) => {
       language = 'en', 
       prompt = '', 
       llmModel = 'gpt-4o-mini', 
-      voiceId = DEFAULT_VOICE_ID 
+      voiceId = DEFAULT_VOICE_ID,
+      userId
     } = body;
     
     if (!name) {
       console.error('Name is required but not provided')
       throw new Error('Name is required')
+    }
+    
+    if (!userId) {
+      console.error('User ID is required but not provided')
+      throw new Error('User ID is required')
     }
 
     // Validate language
@@ -133,7 +151,32 @@ serve(async (req) => {
       throw new Error('Failed to parse ElevenLabs response')
     }
 
-    return new Response(JSON.stringify(data), {
+    // Insert agent into Supabase database
+    console.log(`Creating agent record in Supabase: ${name}, user: ${userId}, elevenlabs_agent_id: ${data.agent_id}`)
+    const { data: agentData, error: supabaseError } = await supabase
+      .from("agents")
+      .insert({ 
+        name, 
+        elevenlabs_agent_id: data.agent_id,
+        user_id: userId,
+        language,
+        llm_model: llmModel,
+      })
+      .select()
+      .single()
+
+    if (supabaseError) {
+      console.error('Supabase error:', supabaseError)
+      throw new Error(`Failed to create agent in database: ${supabaseError.message}`)
+    }
+
+    console.log('Successfully inserted agent record:', agentData)
+
+    // Return combined response with both ElevenLabs and Supabase data
+    return new Response(JSON.stringify({
+      elevenlabs: data,
+      agent: agentData
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {

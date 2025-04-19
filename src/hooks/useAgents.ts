@@ -1,5 +1,5 @@
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -13,13 +13,6 @@ interface Agent {
   updated_at: string;
   language?: string;
   llm_model?: string;
-}
-
-interface CreateAgentParams {
-  name: string;
-  elevenlabsAgentId: string;
-  language?: string;
-  llmModel?: string;
 }
 
 // Function to fetch agent details from ElevenLabs
@@ -46,9 +39,8 @@ const fetchElevenLabsAgentDetails = async (agentId: string) => {
 
 export const useAgents = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  const { data: agents, isLoading } = useQuery({
+  const { data: agents, isLoading, refetch } = useQuery({
     queryKey: ["agents", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -62,44 +54,6 @@ export const useAgents = () => {
     enabled: !!user?.id,
   });
 
-  // Query for ElevenLabs agent details
-  const getAgentDetails = useQuery({
-    queryKey: ['elevenlabs_agent_details'],
-    queryFn: () => {
-      throw new Error('Agent ID is required');
-    },
-    enabled: false,
-  });
-
-  const createAgent = useMutation({
-    mutationFn: async ({ 
-      name, 
-      elevenlabsAgentId, 
-      language = 'en', 
-      llmModel = 'gpt-4o-mini'
-    }: CreateAgentParams) => {
-      if (!user?.id) throw new Error("User must be logged in to create an agent");
-      
-      const { data, error } = await supabase
-        .from("agents")
-        .insert({ 
-          name, 
-          elevenlabs_agent_id: elevenlabsAgentId,
-          user_id: user.id,
-          language,
-          llm_model: llmModel,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Agent;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["agents"] });
-    },
-  });
-
   // Method to fetch specific agent details from ElevenLabs
   const fetchAgentDetailsFromElevenLabs = async (agentId: string) => {
     return fetchElevenLabsAgentDetails(agentId);
@@ -108,7 +62,7 @@ export const useAgents = () => {
   return {
     agents,
     isLoading,
-    createAgent,
+    refetch,
     fetchAgentDetailsFromElevenLabs,
   };
 };
