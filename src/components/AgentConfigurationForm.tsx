@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +24,7 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
   const [prompt, setPrompt] = useState(agentDetails?.conversation_config?.agent?.prompt?.prompt || "");
   const [firstMessage, setFirstMessage] = useState(agentDetails?.conversation_config?.agent?.first_message || "");
   const [language, setLanguage] = useState(agentDetails?.conversation_config?.agent?.language || "en");
-  const [llmModel, setLlmModel] = useState(agentDetails?.conversation_config?.agent?.prompt?.llm || "gemini-2.0-flash-001");
+  const [llmModel, setLlmModel] = useState(agentDetails?.conversation_config?.agent?.prompt?.llm || "gpt-4o-mini");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +46,10 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
     // Validate model for non-English languages
     if (language !== "en") {
       // Check if the model is compatible with non-English languages
-      if (!["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)) {
+      if (!multilanguageModels.includes(llmModel)) {
         toast({
           title: "Validation Error",
-          description: "Non-English agents must use eleven_turbo_v2 or eleven_turbo_v2_5 models",
+          description: "Selected model doesn't support non-English languages",
           variant: "destructive"
         });
         return;
@@ -62,19 +61,41 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
 
   // Update LLM model when language changes
   useEffect(() => {
-    if (language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)) {
-      setLlmModel("eleven_turbo_v2");
+    if (language !== "en" && !multilanguageModels.includes(llmModel)) {
+      setLlmModel("gpt-4o-mini"); // Default to a multilanguage model
     }
   }, [language, llmModel]);
 
-  const availableModels = [
-    "eleven_turbo_v2",
-    "eleven_turbo_v2_5",
+  const multilanguageModels = [
     "gpt-4o-mini",
     "gpt-4o",
+    "gpt-4",
+    "gpt-4-turbo",
     "gemini-2.0-flash-001",
+    "gemini-2.0-flash-lite",
+    "claude-3-7-sonnet",
+    "claude-3-5-sonnet",
+    "claude-3-5-sonnet-v1",
+    "claude-3-haiku"
+  ];
+
+  const availableModels = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-4",
+    "gpt-4-turbo",
+    "gpt-3.5-turbo",
     "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-2.0-flash-001",
+    "gemini-2.0-flash-lite",
+    "gemini-1.0-pro",
+    "claude-3-7-sonnet",
+    "claude-3-5-sonnet",
+    "claude-3-5-sonnet-v1",
     "claude-3-haiku",
+    "grok-beta",
+    "custom-llm"
   ];
 
   const languages = [
@@ -128,9 +149,9 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
             </SelectGroup>
           </SelectContent>
         </Select>
-        {language !== "en" && (
+        {language !== "en" && !multilanguageModels.includes(llmModel) && (
           <p className="text-xs text-amber-600 mt-1">
-            Non-English agents require eleven_turbo_v2 or eleven_turbo_v2_5 model
+            Selected model does not support non-English languages
           </p>
         )}
       </div>
@@ -140,7 +161,6 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
         <Select 
           value={llmModel} 
           onValueChange={setLlmModel}
-          disabled={language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select LLM model" />
@@ -151,9 +171,9 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
                 <SelectItem 
                   key={model} 
                   value={model}
-                  disabled={language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(model)}
+                  disabled={language !== "en" && !multilanguageModels.includes(model)}
                 >
-                  {model} {language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(model) ? "(English only)" : ""}
+                  {model} {language !== "en" && !multilanguageModels.includes(model) ? "(English only)" : ""}
                 </SelectItem>
               ))}
             </SelectGroup>
