@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -117,6 +118,13 @@ serve(async (req) => {
           const detail = await detailResponse.json();
           console.log(`Received details for conversation: ${conv.conversation_id}, status: ${detail.status}`);
           
+          // Only proceed if the conversation status is 'done' or 'failed'
+          const status = detail.status.toLowerCase();
+          if (status !== 'done' && status !== 'failed') {
+            console.log(`Skipping conversation ${conv.conversation_id} with status: ${status}`);
+            continue;
+          }
+
           const call_id = detail.metadata?.phone_call?.call_sid || null;
           console.log(`Call ID from metadata: ${call_id || 'none'}`);
 
@@ -135,17 +143,12 @@ serve(async (req) => {
 
           // Map ElevenLabs conversation status to task status
           let taskStatus;
-          const conversationStatus = detail.status.toLowerCase();
-          switch (conversationStatus) {
+          switch (status) {
             case 'done':
               taskStatus = 'finished';
               break;
             case 'failed':
               taskStatus = 'failed';
-              break;
-            case 'in_progress':
-            case 'processing':
-              taskStatus = 'processing';
               break;
             default:
               taskStatus = 'unknown';
