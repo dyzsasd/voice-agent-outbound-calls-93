@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
@@ -14,7 +13,6 @@ const Profile = () => {
   const [agentDetails, setAgentDetails] = useState<{ [key: string]: any }>({});
   const [loadingDetails, setLoadingDetails] = useState<{ [key: string]: boolean }>({});
   
-  // Fetch all tasks at once instead of inside the map function
   const { tasks: allTasks } = useTasks();
 
   const loadAgentDetails = async (agentId: string, elevenlabsAgentId: string) => {
@@ -56,7 +54,6 @@ const Profile = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents?.map((agent) => {
               const details = agentDetails[agent.id];
-              // Filter tasks for this specific agent instead of calling useTasks inside the map
               const agentTasks = allTasks?.filter(task => task.agent_id === agent.id) || [];
               
               if (!details && !loadingDetails[agent.id]) {
@@ -108,7 +105,7 @@ const Profile = () => {
                             <div key={task.id} className="flex items-center gap-2 text-sm">
                               <FileText className="h-4 w-4 text-muted-foreground" />
                               <span className="text-muted-foreground">
-                                {task.name || `Call to ${task.to_phone_number}`}
+                                {task.name || `Task for ${task.to_phone_number}`}
                               </span>
                             </div>
                           ))}
