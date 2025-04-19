@@ -6,4 +6,5 @@ export interface Task {
   status: 'idle' | 'processing' | 'finished' | 'failed';
   created_at: string;
   agent_id: string;
+  call_id: string | null;
 }

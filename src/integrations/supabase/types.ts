@@ -60,8 +60,8 @@ export type Database = {
       tasks: {
         Row: {
           agent_id: string
+          call_id: string | null
           created_at: string
-          elevenlabs_conversation_id: string | null
           id: string
           name: string | null
           status: Database["public"]["Enums"]["task_status"]
@@ -70,8 +70,8 @@ export type Database = {
         }
         Insert: {
           agent_id: string
+          call_id?: string | null
           created_at?: string
-          elevenlabs_conversation_id?: string | null
           id?: string
           name?: string | null
           status?: Database["public"]["Enums"]["task_status"]
@@ -80,8 +80,8 @@ export type Database = {
         }
         Update: {
           agent_id?: string
+          call_id?: string | null
           created_at?: string
-          elevenlabs_conversation_id?: string | null
           id?: string
           name?: string | null
           status?: Database["public"]["Enums"]["task_status"]

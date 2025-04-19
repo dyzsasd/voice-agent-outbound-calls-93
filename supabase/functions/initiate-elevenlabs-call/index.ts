@@ -141,7 +141,7 @@ serve(async (req) => {
       const { error: updateError } = await supabase
         .from('tasks')
         .update({
-          elevenlabs_conversation_id: elevenlabsData.callSid || null,
+          call_id: elevenlabsData.callSid || null,
           status: 'processing'
         })
         .eq('id', taskId);
