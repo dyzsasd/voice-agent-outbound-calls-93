@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -136,8 +135,9 @@ serve(async (req) => {
 
           // Map ElevenLabs conversation status to task status
           let taskStatus;
-          switch (detail.status.toLowerCase()) {
-            case 'completed':
+          const conversationStatus = detail.status.toLowerCase();
+          switch (conversationStatus) {
+            case 'done':
               taskStatus = 'finished';
               break;
             case 'failed':
@@ -148,8 +148,11 @@ serve(async (req) => {
               taskStatus = 'processing';
               break;
             default:
-              taskStatus = 'idle';
+              taskStatus = 'unknown';
+              console.log(`Unmapped conversation status "${detail.status}" defaulting to "unknown"`);
           }
+
+          console.log(`Mapped conversation status "${detail.status}" to task status "${taskStatus}"`);
 
           // Insert new conversation
           const { error: insertError } = await supabase
