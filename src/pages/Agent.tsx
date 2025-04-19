@@ -189,7 +189,14 @@ const Agent = () => {
           {tasks?.map((task) => (
             <Card key={task.id}>
               <CardHeader>
-                <CardTitle>{task.name || `Task for ${task.to_phone_number}`}</CardTitle>
+                <CardTitle>
+                  {task.name || `Task for ${task.to_phone_number}`}
+                  {!task.name && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {task.to_phone_number}
+                    </p>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-4">
@@ -225,3 +232,4 @@ const Agent = () => {
 };
 
 export default Agent;
+
