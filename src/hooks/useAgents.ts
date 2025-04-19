@@ -22,7 +22,7 @@ interface CreateAgentParams {
   llmModel?: string;
 }
 
-// New function to fetch agent details from ElevenLabs
+// Function to fetch agent details from ElevenLabs
 const fetchElevenLabsAgentDetails = async (agentId: string) => {
   const apiKey = localStorage.getItem('elevenlabs_api_key');
   if (!apiKey) {
@@ -62,7 +62,7 @@ export const useAgents = () => {
     enabled: !!user?.id,
   });
 
-  // New query to fetch agent details from ElevenLabs
+  // Query for ElevenLabs agent details
   const getAgentDetails = useQuery({
     queryKey: ['elevenlabs_agent_details'],
     queryFn: () => {
@@ -101,11 +101,8 @@ export const useAgents = () => {
   });
 
   // Method to fetch specific agent details from ElevenLabs
-  const fetchAgentDetailsFromElevenLabs = (agentId: string) => {
-    return getAgentDetails.refetch({ 
-      queryKey: ['elevenlabs_agent_details', agentId],
-      queryFn: () => fetchElevenLabsAgentDetails(agentId)
-    });
+  const fetchAgentDetailsFromElevenLabs = async (agentId: string) => {
+    return fetchElevenLabsAgentDetails(agentId);
   };
 
   return {

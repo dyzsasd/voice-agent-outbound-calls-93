@@ -60,7 +60,7 @@ const Profile = () => {
                     <div className="flex items-start gap-2 text-xs text-muted-foreground mb-3">
                       <MessageSquare className="h-3 w-3 mt-0.5 flex-shrink-0" />
                       <span className="line-clamp-2">
-                        {agent.first_message || "Default greeting"}
+                        Default greeting
                       </span>
                     </div>
                     <Button variant="outline" className="w-full" asChild>
