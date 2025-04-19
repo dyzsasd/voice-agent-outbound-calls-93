@@ -85,7 +85,7 @@ export const TranscriptViewer = ({ taskId, taskName, phoneNumber }: TranscriptVi
               conversation.transcript.map((message: any, index: number) => (
                 <div key={index} className="space-y-1">
                   <div className="font-semibold capitalize">{message.role}:</div>
-                  <div className="text-muted-foreground">{message.message}</div>
+                  <div className="text-muted-foreground whitespace-pre-wrap break-words">{message.message}</div>
                 </div>
               ))
             ) : (
