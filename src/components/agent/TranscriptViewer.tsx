@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -11,7 +11,13 @@ interface TranscriptViewerProps {
 
 export const TranscriptViewer = ({ transcript, taskName, phoneNumber }: TranscriptViewerProps) => {
   const downloadTranscript = () => {
-    const messages = transcript.messages || [];
+    // Check if transcript exists and has messages
+    if (!transcript || !Array.isArray(transcript.messages)) {
+      console.error("Invalid transcript structure:", transcript);
+      return;
+    }
+    
+    const messages = transcript.messages;
     const text = messages
       .map((msg: any) => `${msg.role}: ${msg.content}`)
       .join('\n\n');
@@ -27,6 +33,9 @@ export const TranscriptViewer = ({ transcript, taskName, phoneNumber }: Transcri
     window.URL.revokeObjectURL(url);
   };
 
+  // Debugging - log the transcript structure
+  console.log("Transcript data:", transcript);
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -38,6 +47,9 @@ export const TranscriptViewer = ({ transcript, taskName, phoneNumber }: Transcri
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{taskName || `Conversation with ${phoneNumber}`}</DialogTitle>
+          <DialogDescription>
+            Conversation transcript with AI agent
+          </DialogDescription>
         </DialogHeader>
         <div className="mt-4 space-y-4">
           <Button variant="outline" onClick={downloadTranscript} className="mb-4">
@@ -45,12 +57,16 @@ export const TranscriptViewer = ({ transcript, taskName, phoneNumber }: Transcri
             Download Transcript
           </Button>
           <div className="max-h-[60vh] overflow-y-auto space-y-4 border rounded-lg p-4">
-            {transcript?.messages?.map((message: any, index: number) => (
-              <div key={index} className="space-y-1">
-                <div className="font-semibold capitalize">{message.role}:</div>
-                <div className="text-muted-foreground">{message.content}</div>
-              </div>
-            ))}
+            {transcript && Array.isArray(transcript.messages) && transcript.messages.length > 0 ? (
+              transcript.messages.map((message: any, index: number) => (
+                <div key={index} className="space-y-1">
+                  <div className="font-semibold capitalize">{message.role}:</div>
+                  <div className="text-muted-foreground">{message.content}</div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground">No transcript data available</div>
+            )}
           </div>
         </div>
       </DialogContent>

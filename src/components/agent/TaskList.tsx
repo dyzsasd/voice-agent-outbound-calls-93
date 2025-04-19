@@ -24,6 +24,8 @@ export const TaskList = ({ tasks, onRunTask, runningTasks, isRunningTask }: Task
         .in("conversation_id", tasks.map(t => t.conversation_id).filter(Boolean));
       
       if (error) throw error;
+      
+      console.log("Fetched conversations:", data);
       return data || [];
     },
     enabled: tasks.some(t => t.conversation_id && t.status === "finished")
@@ -34,6 +36,12 @@ export const TaskList = ({ tasks, onRunTask, runningTasks, isRunningTask }: Task
       <h2 className="text-2xl font-bold">Tasks</h2>
       {tasks?.map((task) => {
         const conversation = conversations?.find(c => c.conversation_id === task.conversation_id);
+        
+        // Debug the conversation object for this task
+        if (conversation) {
+          console.log(`Conversation for task ${task.id}:`, conversation);
+          console.log(`Transcript for task ${task.id}:`, conversation.transcript);
+        }
         
         return (
           <Card key={task.id}>
