@@ -5,20 +5,16 @@ import Layout from "@/components/Layout";
 import { useAgents } from "@/hooks/useAgents";
 import { useTasks } from "@/hooks/useTasks";
 import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { AgentConfigurationForm } from "@/components/AgentConfigurationForm";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { PhoneCall } from "lucide-react";
+import { CreateTaskForm } from "@/components/agent/CreateTaskForm";
+import { TaskList } from "@/components/agent/TaskList";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
   const { agents, fetchAgentDetailsFromElevenLabs, updateAgentInElevenLabs } = useAgents();
   const { tasks, createTask, runTask } = useTasks(id);
   const { toast } = useToast();
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [taskName, setTaskName] = useState("");
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -67,20 +63,8 @@ const Agent = () => {
     }
   };
 
-  const handleCreateTask = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateTask = async (taskName: string, phoneNumber: string) => {
     if (!id) return;
-
-    // Validate phone number format (basic validation)
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(phoneNumber)) {
-      toast({
-        title: "Invalid Phone Number",
-        description: "Please enter a valid phone number with country code (e.g., +1234567890)",
-        variant: "destructive",
-      });
-      return;
-    }
 
     try {
       await createTask.mutateAsync({ 
@@ -89,8 +73,6 @@ const Agent = () => {
         name: taskName || undefined 
       });
       toast({ title: "Task created successfully" });
-      setPhoneNumber("");
-      setTaskName("");
     } catch (error) {
       toast({
         title: "Failed to create task",
@@ -147,89 +129,21 @@ const Agent = () => {
         </Card>
 
         <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create New Task</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateTask} className="space-y-4">
-                <div>
-                  <Label htmlFor="taskName">Task Name (Optional)</Label>
-                  <Input
-                    id="taskName"
-                    type="text"
-                    placeholder="Enter task name (optional)"
-                    value={taskName}
-                    onChange={(e) => setTaskName(e.target.value)}
-                    className="mt-2"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="Enter phone number with country code (e.g., +1234567890)"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    required
-                    className="mt-2"
-                  />
-                </div>
-                <Button type="submit" disabled={createTask.isPending} className="w-full">
-                  Create Task
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <CreateTaskForm 
+            onSubmit={handleCreateTask}
+            isCreating={createTask.isPending}
+          />
         </div>
 
-        <div className="grid gap-4">
-          <h2 className="text-2xl font-bold">Tasks</h2>
-          {tasks?.map((task) => (
-            <Card key={task.id}>
-              <CardHeader>
-                <CardTitle>
-                  {task.name || `Task for ${task.to_phone_number}`}
-                  {!task.name && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {task.to_phone_number}
-                    </p>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-4">
-                  <div className="flex justify-between items-center">
-                    <div>Status: <span className={task.status === 'idle' ? 'text-amber-500' : 
-                                         task.status === 'processing' ? 'text-blue-500' : 
-                                         task.status === 'finished' ? 'text-green-500' : 
-                                         'text-red-500'}>
-                           {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                         </span>
-                    </div>
-                    <div>Created: {new Date(task.created_at).toLocaleString()}</div>
-                  </div>
-                  {task.status === 'idle' && (
-                    <Button 
-                      variant="default" 
-                      onClick={() => handleRunTask(task.id, task.to_phone_number)}
-                      disabled={runningTasks[task.id] || runTask.isPending}
-                      className="mt-2"
-                    >
-                      <PhoneCall className="h-4 w-4 mr-2" />
-                      {runningTasks[task.id] ? 'Initiating Call...' : 'Run Task'}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <TaskList 
+          tasks={tasks || []}
+          onRunTask={handleRunTask}
+          runningTasks={runningTasks}
+          isRunningTask={runTask.isPending}
+        />
       </div>
     </Layout>
   );
 };
 
 export default Agent;
-
