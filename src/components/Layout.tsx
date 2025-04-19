@@ -1,12 +1,40 @@
 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, Phone, User } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Home, LogOut, User } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast({
+          title: "Logout Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      navigate("/auth");
+    } catch (error) {
+      toast({
+        title: "Logout Error",
+        description: "An unexpected error occurred during logout.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -32,6 +60,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  {user && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton onClick={handleLogout}>
+                        <LogOut />
+                        <span>Logout</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
