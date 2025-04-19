@@ -11,31 +11,7 @@ interface Agent {
   user_id: string;
   created_at: string;
   updated_at: string;
-  language?: string;
-  llm_model?: string;
 }
-
-// Function to fetch agent details from ElevenLabs
-const fetchElevenLabsAgentDetails = async (agentId: string) => {
-  const apiKey = localStorage.getItem('elevenlabs_api_key');
-  if (!apiKey) {
-    throw new Error('ElevenLabs API key not found');
-  }
-
-  const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
-    method: 'GET',
-    headers: {
-      'xi-api-key': apiKey,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch agent details');
-  }
-
-  return response.json();
-};
 
 export const useAgents = () => {
   const { user } = useAuth();
@@ -54,15 +30,20 @@ export const useAgents = () => {
     enabled: !!user?.id,
   });
 
-  // Method to fetch specific agent details from ElevenLabs
-  const fetchAgentDetailsFromElevenLabs = async (agentId: string) => {
-    return fetchElevenLabsAgentDetails(agentId);
+  // Method to fetch agent details from ElevenLabs using our edge function
+  const fetchAgentDetailsFromElevenLabs = async (elevenlabs_agent_id: string) => {
+    const { data, error } = await supabase.functions.invoke('get-elevenlabs-agent', {
+      body: { elevenlabs_agent_id }
+    });
+
+    if (error) throw error;
+    return data;
   };
 
   return {
     agents,
     isLoading,
     refetch,
-    fetchAgentDetailsFromElevenLabs,
+    fetchAgentDetailsFromElevenLabs
   };
 };
