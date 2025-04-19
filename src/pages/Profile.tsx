@@ -2,13 +2,30 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
-import { Phone, Calendar } from "lucide-react";
+import { Phone, Calendar, Globe2, MessageSquare, Cpu } from "lucide-react";
 import { CreateAgentDialog } from "@/components/CreateAgentDialog";
 import { useAgents } from "@/hooks/useAgents";
 import { formatDistance } from "date-fns";
+import { useState } from "react";
 
 const Profile = () => {
-  const { agents, isLoading } = useAgents();
+  const { agents, isLoading, fetchAgentDetailsFromElevenLabs } = useAgents();
+  const [agentDetails, setAgentDetails] = useState<{ [key: string]: any }>({});
+  const [loadingDetails, setLoadingDetails] = useState<{ [key: string]: boolean }>({});
+
+  const loadAgentDetails = async (agentId: string, elevenlabsAgentId: string) => {
+    if (agentDetails[agentId]) return;
+    
+    setLoadingDetails(prev => ({ ...prev, [agentId]: true }));
+    try {
+      const details = await fetchAgentDetailsFromElevenLabs(elevenlabsAgentId);
+      setAgentDetails(prev => ({ ...prev, [agentId]: details }));
+    } catch (error) {
+      console.error("Failed to fetch agent details:", error);
+    } finally {
+      setLoadingDetails(prev => ({ ...prev, [agentId]: false }));
+    }
+  };
 
   return (
     <Layout>
@@ -33,30 +50,61 @@ const Profile = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {agents?.map((agent) => (
-              <Card key={agent.id} className="overflow-hidden">
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2">
-                    <Phone className="h-5 w-5" />
-                    {agent.name}
-                  </CardTitle>
-                  <div className="flex items-center text-xs text-muted-foreground mt-2">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    Updated {formatDistance(new Date(agent.updated_at), new Date(), { addSuffix: true })}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <Button variant="outline" className="w-full" asChild>
-                    <a href={`/agent/${agent.id}`}>View Agent</a>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {agents?.map((agent) => {
+              const details = agentDetails[agent.id];
+              if (!details && !loadingDetails[agent.id]) {
+                loadAgentDetails(agent.id, agent.elevenlabs_agent_id);
+              }
+              
+              return (
+                <Card key={agent.id} className="overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <Phone className="h-5 w-5" />
+                      {agent.name}
+                    </CardTitle>
+                    <div className="flex items-center text-xs text-muted-foreground mt-2">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      Updated {formatDistance(new Date(agent.updated_at), new Date(), { addSuffix: true })}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {loadingDetails[agent.id] ? (
+                      <p className="text-sm text-muted-foreground">Loading details...</p>
+                    ) : details ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2 text-sm">
+                          <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                          <p className="text-muted-foreground">
+                            {details.conversation_config?.agent?.first_message || "No first message set"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Globe2 className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-muted-foreground">
+                            Language: {details.conversation_config?.agent?.language || "Not set"}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Cpu className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-muted-foreground">
+                            Model: {details.conversation_config?.agent?.prompt?.llm || "Not set"}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                    <Button variant="outline" className="w-full" asChild>
+                      <a href={`/agent/${agent.id}`}>View Agent</a>
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
     </Layout>
   );
-}
+};
 
 export default Profile;
