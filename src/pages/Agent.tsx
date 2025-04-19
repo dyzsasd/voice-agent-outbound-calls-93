@@ -1,5 +1,5 @@
+
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import { useAgents } from "@/hooks/useAgents";
@@ -7,7 +7,7 @@ import { useTasks } from "@/hooks/useTasks";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
+import { AgentConfigurationForm } from "@/components/AgentConfigurationForm";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +18,6 @@ const Agent = () => {
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [prompt, setPrompt] = useState("");
 
   const agent = agents?.find((a) => a.id === id);
 
@@ -28,7 +27,6 @@ const Agent = () => {
       fetchAgentDetailsFromElevenLabs(agent.elevenlabs_agent_id)
         .then((data) => {
           setAgentDetails(data);
-          setPrompt(data.conversation_config.agent.prompt.prompt || "");
         })
         .catch((error) => {
           console.error("Failed to fetch agent details:", error);
@@ -44,28 +42,18 @@ const Agent = () => {
     }
   }, [agent, agentDetails, fetchAgentDetailsFromElevenLabs, toast]);
 
-  const handleUpdatePrompt = async () => {
+  const handleUpdateConfiguration = async (updates: any) => {
     if (!agent) return;
     
     setIsUpdating(true);
     try {
-      const updates = {
-        conversation_config: {
-          agent: {
-            prompt: {
-              prompt: prompt
-            }
-          }
-        }
-      };
-
       const updatedAgent = await updateAgentInElevenLabs(agent.elevenlabs_agent_id, updates);
       setAgentDetails(updatedAgent);
-      toast({ title: "Agent updated successfully" });
+      toast({ title: "Agent configuration updated successfully" });
     } catch (error) {
       console.error("Failed to update agent:", error);
       toast({
-        title: "Failed to update agent",
+        title: "Failed to update agent configuration",
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
       });
@@ -107,23 +95,17 @@ const Agent = () => {
             <CardTitle>Agent Configuration</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">System Prompt</label>
-                <Textarea
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Enter system prompt..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              <Button 
-                onClick={handleUpdatePrompt}
-                disabled={isUpdating || !prompt}
-              >
-                {isUpdating ? "Updating..." : "Update Prompt"}
-              </Button>
-            </div>
+            {isLoadingDetails ? (
+              <div>Loading configuration...</div>
+            ) : agentDetails ? (
+              <AgentConfigurationForm
+                agentDetails={agentDetails}
+                isUpdating={isUpdating}
+                onUpdate={handleUpdateConfiguration}
+              />
+            ) : (
+              <div>Failed to load agent configuration</div>
+            )}
           </CardContent>
         </Card>
 
