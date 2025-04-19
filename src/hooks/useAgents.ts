@@ -13,8 +13,6 @@ interface Agent {
   updated_at: string;
   language?: string;
   llm_model?: string;
-  first_message?: string;
-  prompt?: string;
 }
 
 interface CreateAgentParams {
@@ -22,9 +20,29 @@ interface CreateAgentParams {
   elevenlabsAgentId: string;
   language?: string;
   llmModel?: string;
-  firstMessage?: string;
-  prompt?: string;
 }
+
+// New function to fetch agent details from ElevenLabs
+const fetchElevenLabsAgentDetails = async (agentId: string) => {
+  const apiKey = localStorage.getItem('elevenlabs_api_key');
+  if (!apiKey) {
+    throw new Error('ElevenLabs API key not found');
+  }
+
+  const response = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
+    method: 'GET',
+    headers: {
+      'xi-api-key': apiKey,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch agent details');
+  }
+
+  return response.json();
+};
 
 export const useAgents = () => {
   const { user } = useAuth();
@@ -44,14 +62,21 @@ export const useAgents = () => {
     enabled: !!user?.id,
   });
 
+  // New query to fetch agent details from ElevenLabs
+  const getAgentDetails = useQuery({
+    queryKey: ['elevenlabs_agent_details'],
+    queryFn: () => {
+      throw new Error('Agent ID is required');
+    },
+    enabled: false,
+  });
+
   const createAgent = useMutation({
     mutationFn: async ({ 
       name, 
       elevenlabsAgentId, 
       language = 'en', 
-      llmModel = 'gpt-4o-mini',
-      firstMessage = '',
-      prompt = ''
+      llmModel = 'gpt-4o-mini'
     }: CreateAgentParams) => {
       if (!user?.id) throw new Error("User must be logged in to create an agent");
       
@@ -63,8 +88,6 @@ export const useAgents = () => {
           user_id: user.id,
           language,
           llm_model: llmModel,
-          first_message: firstMessage,
-          prompt
         })
         .select()
         .single();
@@ -77,9 +100,18 @@ export const useAgents = () => {
     },
   });
 
+  // Method to fetch specific agent details from ElevenLabs
+  const fetchAgentDetailsFromElevenLabs = (agentId: string) => {
+    return getAgentDetails.refetch({ 
+      queryKey: ['elevenlabs_agent_details', agentId],
+      queryFn: () => fetchElevenLabsAgentDetails(agentId)
+    });
+  };
+
   return {
     agents,
     isLoading,
     createAgent,
+    fetchAgentDetailsFromElevenLabs,
   };
 };
