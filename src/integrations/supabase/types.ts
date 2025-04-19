@@ -63,6 +63,7 @@ export type Database = {
           created_at: string
           elevenlabs_conversation_id: string | null
           id: string
+          name: string | null
           status: Database["public"]["Enums"]["task_status"]
           to_phone_number: string
           updated_at: string
@@ -72,6 +73,7 @@ export type Database = {
           created_at?: string
           elevenlabs_conversation_id?: string | null
           id?: string
+          name?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           to_phone_number: string
           updated_at?: string
@@ -81,6 +83,7 @@ export type Database = {
           created_at?: string
           elevenlabs_conversation_id?: string | null
           id?: string
+          name?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           to_phone_number?: string
           updated_at?: string

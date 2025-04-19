@@ -27,10 +27,23 @@ export const useTasks = (agentId?: string) => {
   });
 
   const createTask = useMutation({
-    mutationFn: async ({ agentId, toPhoneNumber }: { agentId: string; toPhoneNumber: string }) => {
+    mutationFn: async ({ 
+      agentId, 
+      toPhoneNumber, 
+      name 
+    }: { 
+      agentId: string; 
+      toPhoneNumber: string; 
+      name?: string 
+    }) => {
       const { data, error } = await supabase
         .from("tasks")
-        .insert({ agent_id: agentId, to_phone_number: toPhoneNumber })
+        .insert({ 
+          agent_id: agentId, 
+          to_phone_number: toPhoneNumber,
+          name: name || null,
+          status: 'idle'
+        })
         .select()
         .single();
 

@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
@@ -8,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { AgentConfigurationForm } from "@/components/AgentConfigurationForm";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,7 @@ const Agent = () => {
   const { tasks, createTask } = useTasks(id);
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [taskName, setTaskName] = useState("");
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -66,13 +69,30 @@ const Agent = () => {
     e.preventDefault();
     if (!id) return;
 
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number with country code (e.g., +1234567890)",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await createTask.mutateAsync({ agentId: id, toPhoneNumber: phoneNumber });
+      await createTask.mutateAsync({ 
+        agentId: id, 
+        toPhoneNumber: phoneNumber,
+        name: taskName || undefined 
+      });
       toast({ title: "Task created successfully" });
       setPhoneNumber("");
+      setTaskName("");
     } catch (error) {
       toast({
         title: "Failed to create task",
+        description: "An error occurred while creating the task",
         variant: "destructive",
       });
     }
@@ -115,15 +135,31 @@ const Agent = () => {
               <CardTitle>Create New Task</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreateTask} className="flex gap-4">
-                <Input
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={createTask.isPending}>
+              <form onSubmit={handleCreateTask} className="space-y-4">
+                <div>
+                  <Label htmlFor="taskName">Task Name (Optional)</Label>
+                  <Input
+                    id="taskName"
+                    type="text"
+                    placeholder="Enter task name (optional)"
+                    value={taskName}
+                    onChange={(e) => setTaskName(e.target.value)}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="Enter phone number with country code (e.g., +1234567890)"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    required
+                    className="mt-2"
+                  />
+                </div>
+                <Button type="submit" disabled={createTask.isPending} className="w-full">
                   Create Task
                 </Button>
               </form>
