@@ -61,6 +61,7 @@ export type Database = {
         Row: {
           agent_id: string
           call_id: string | null
+          conversation_id: string | null
           created_at: string
           id: string
           name: string | null
@@ -71,6 +72,7 @@ export type Database = {
         Insert: {
           agent_id: string
           call_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           id?: string
           name?: string | null
@@ -81,6 +83,7 @@ export type Database = {
         Update: {
           agent_id?: string
           call_id?: string | null
+          conversation_id?: string | null
           created_at?: string
           id?: string
           name?: string | null

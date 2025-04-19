@@ -7,4 +7,5 @@ export interface Task {
   created_at: string;
   agent_id: string;
   call_id: string | null;
+  conversation_id: string | null;
 }
