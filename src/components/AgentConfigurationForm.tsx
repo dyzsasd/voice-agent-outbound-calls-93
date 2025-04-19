@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface AgentConfigurationFormProps {
   agentDetails: any;
@@ -20,6 +21,7 @@ interface AgentConfigurationFormProps {
 }
 
 export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: AgentConfigurationFormProps) {
+  const { toast } = useToast();
   const [prompt, setPrompt] = useState(agentDetails?.conversation_config?.agent?.prompt?.prompt || "");
   const [firstMessage, setFirstMessage] = useState(agentDetails?.conversation_config?.agent?.first_message || "");
   const [language, setLanguage] = useState(agentDetails?.conversation_config?.agent?.language || "en");
@@ -27,6 +29,8 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Build the updates object
     const updates = {
       conversation_config: {
         agent: {
@@ -39,10 +43,33 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
         }
       }
     };
+
+    // Validate model for non-English languages
+    if (language !== "en") {
+      // Check if the model is compatible with non-English languages
+      if (!["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)) {
+        toast({
+          title: "Validation Error",
+          description: "Non-English agents must use eleven_turbo_v2 or eleven_turbo_v2_5 models",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     onUpdate(updates);
   };
 
+  // Update LLM model when language changes
+  useEffect(() => {
+    if (language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)) {
+      setLlmModel("eleven_turbo_v2");
+    }
+  }, [language, llmModel]);
+
   const availableModels = [
+    "eleven_turbo_v2",
+    "eleven_turbo_v2_5",
     "gpt-4o-mini",
     "gpt-4o",
     "gemini-2.0-flash-001",
@@ -101,19 +128,32 @@ export function AgentConfigurationForm({ agentDetails, isUpdating, onUpdate }: A
             </SelectGroup>
           </SelectContent>
         </Select>
+        {language !== "en" && (
+          <p className="text-xs text-amber-600 mt-1">
+            Non-English agents require eleven_turbo_v2 or eleven_turbo_v2_5 model
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
         <Label>LLM Model</Label>
-        <Select value={llmModel} onValueChange={setLlmModel}>
+        <Select 
+          value={llmModel} 
+          onValueChange={setLlmModel}
+          disabled={language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(llmModel)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select LLM model" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               {availableModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
+                <SelectItem 
+                  key={model} 
+                  value={model}
+                  disabled={language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(model)}
+                >
+                  {model} {language !== "en" && !["eleven_turbo_v2", "eleven_turbo_v2_5"].includes(model) ? "(English only)" : ""}
                 </SelectItem>
               ))}
             </SelectGroup>
