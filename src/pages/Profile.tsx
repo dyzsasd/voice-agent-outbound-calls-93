@@ -1,12 +1,12 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
-import { Phone, Calendar, Globe2, MessageSquare, Cpu } from "lucide-react";
+import { Phone, Calendar, Globe2, MessageSquare, Cpu, FileText } from "lucide-react";
 import { CreateAgentDialog } from "@/components/CreateAgentDialog";
 import { useAgents } from "@/hooks/useAgents";
 import { formatDistance } from "date-fns";
 import { useState } from "react";
+import { useTasks } from "@/hooks/useTasks";
 
 const Profile = () => {
   const { agents, isLoading, fetchAgentDetailsFromElevenLabs } = useAgents();
@@ -52,6 +52,8 @@ const Profile = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents?.map((agent) => {
               const details = agentDetails[agent.id];
+              const { tasks } = useTasks(agent.id);
+              
               if (!details && !loadingDetails[agent.id]) {
                 loadAgentDetails(agent.id, agent.elevenlabs_agent_id);
               }
@@ -93,6 +95,21 @@ const Profile = () => {
                         </div>
                       </div>
                     ) : null}
+                    {tasks && tasks.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium mb-2">Recent Tasks</h4>
+                        <div className="space-y-2">
+                          {tasks.slice(0, 3).map((task) => (
+                            <div key={task.id} className="flex items-center gap-2 text-sm">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">
+                                {task.name || `Call to ${task.to_phone_number}`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Button variant="outline" className="w-full" asChild>
                       <a href={`/agent/${agent.id}`}>View Agent</a>
                     </Button>
