@@ -18,12 +18,25 @@ export const TaskList = ({ tasks, onRunTask, runningTasks, isRunningTask }: Task
   const { data: conversations } = useQuery({
     queryKey: ["conversations", tasks.map(t => t.conversation_id).filter(Boolean)],
     queryFn: async () => {
+      // Filter out tasks without conversation_id
+      const conversationIds = tasks.map(t => t.conversation_id).filter(Boolean);
+      
+      if (conversationIds.length === 0) {
+        console.log("No conversation IDs to fetch");
+        return [];
+      }
+      
+      console.log("Fetching conversations for IDs:", conversationIds);
+      
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .in("conversation_id", tasks.map(t => t.conversation_id).filter(Boolean));
+        .in("conversation_id", conversationIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching conversations:", error);
+        throw error;
+      }
       
       console.log("Fetched conversations:", data);
       return data || [];
@@ -41,6 +54,8 @@ export const TaskList = ({ tasks, onRunTask, runningTasks, isRunningTask }: Task
         if (conversation) {
           console.log(`Conversation for task ${task.id}:`, conversation);
           console.log(`Transcript for task ${task.id}:`, conversation.transcript);
+        } else if (task.conversation_id) {
+          console.log(`No conversation found for task ${task.id} with conversation_id ${task.conversation_id}`);
         }
         
         return (
