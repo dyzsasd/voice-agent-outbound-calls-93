@@ -22,3 +22,4 @@ port = 54324
 
 [functions.initiate-elevenlabs-call]
 verify_jwt = true
+
