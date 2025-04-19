@@ -1,11 +1,9 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "./config.ts";
+import { Database } from "./database.ts";
+import { ElevenLabsAPI } from "./elevenlabs-api.ts";
+import type { ConversationDetail, ConversationResponse, RequestData } from "./types.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,9 +19,11 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const db = new Database(supabaseUrl, supabaseServiceKey);
+    const elevenlabs = new ElevenLabsAPI(elevenlabsApiKey);
 
-    const requestData = await req.json();
+    const requestData = await req.json() as RequestData;
     console.log('Request data:', JSON.stringify(requestData));
     
     const { agent_id } = requestData;
@@ -34,46 +34,23 @@ serve(async (req) => {
 
     console.log(`Syncing conversations for agent_id (Supabase ID): ${agent_id}`);
 
-    // Get the ElevenLabs agent ID from the Supabase agent ID
-    const { data: agentData, error: agentError } = await supabase
-      .from('agents')
-      .select('elevenlabs_agent_id')
-      .eq('id', agent_id)
-      .single();
-
-    if (agentError || !agentData?.elevenlabs_agent_id) {
-      console.error('Error fetching ElevenLabs agent ID:', agentError || 'No elevenlabs_agent_id found');
+    // Get the ElevenLabs agent ID
+    const agentData = await db.getAgent(agent_id);
+    if (!agentData?.elevenlabs_agent_id) {
       throw new Error('Could not find ElevenLabs agent ID');
     }
 
     const elevenlabsAgentId = agentData.elevenlabs_agent_id;
     console.log(`Found ElevenLabs agent ID: ${elevenlabsAgentId}`);
 
-    // Fetch existing conversations for this agent from our database
-    const { data: existingConversations, error: dbError } = await supabase
-      .from('conversations')
-      .select('conversation_id')
-      .eq('agent_id', agent_id);
+    // Fetch existing conversations
+    const existingConversations = await db.getExistingConversations(agent_id);
+    console.log(`Found ${existingConversations.length} existing conversations in database`);
+    const existingIds = new Set(existingConversations.map(c => c.conversation_id));
 
-    if (dbError) {
-      console.error('Database error when fetching existing conversations:', dbError);
-      throw new Error(`Database error: ${dbError.message}`);
-    }
-
-    console.log(`Found ${existingConversations?.length || 0} existing conversations in database`);
-    const existingIds = new Set(existingConversations?.map(c => c.conversation_id) || []);
-
-    // Log the API request we're about to make
+    // Fetch conversations from ElevenLabs
     console.log(`Fetching conversations from ElevenLabs API for elevenlabs_agent_id: ${elevenlabsAgentId}`);
-    console.log(`API URL: https://api.elevenlabs.io/v1/convai/conversations?agent_id=${elevenlabsAgentId}`);
-
-    // Fetch conversations from ElevenLabs API using the elevenlabs_agent_id
-    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations?agent_id=${elevenlabsAgentId}`, {
-      headers: {
-        'xi-api-key': elevenlabsApiKey,
-      },
-    });
-
+    const response = await elevenlabs.fetchConversations(elevenlabsAgentId);
     console.log(`ElevenLabs API response status: ${response.status}`);
     
     if (!response.ok) {
@@ -82,8 +59,8 @@ serve(async (req) => {
       throw new Error(`Failed to fetch conversations: ${response.statusText}. Details: ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log(`Received ${data?.conversations?.length || 0} conversations from ElevenLabs API`);
+    const data = await response.json() as ConversationResponse;
+    console.log(`Received ${data.conversations?.length || 0} conversations from ElevenLabs API`);
     
     if (!data.conversations || !Array.isArray(data.conversations)) {
       console.error('Unexpected API response format:', JSON.stringify(data));
@@ -100,14 +77,7 @@ serve(async (req) => {
         try {
           // Fetch detailed conversation data
           console.log(`Fetching details for conversation: ${conv.conversation_id}`);
-          const detailResponse = await fetch(
-            `https://api.elevenlabs.io/v1/convai/conversations/${conv.conversation_id}`,
-            {
-              headers: {
-                'xi-api-key': elevenlabsApiKey,
-              },
-            }
-          );
+          const detailResponse = await elevenlabs.fetchConversationDetails(conv.conversation_id);
 
           if (!detailResponse.ok) {
             const detailErrorText = await detailResponse.text();
@@ -115,7 +85,7 @@ serve(async (req) => {
             continue;
           }
 
-          const detail = await detailResponse.json();
+          const detail = await detailResponse.json() as ConversationDetail;
           console.log(`Received details for conversation: ${conv.conversation_id}, status: ${detail.status}`);
           
           // Only proceed if the conversation status is 'done' or 'failed'
@@ -128,72 +98,28 @@ serve(async (req) => {
           const call_id = detail.metadata?.phone_call?.call_sid || null;
           console.log(`Call ID from metadata: ${call_id || 'none'}`);
 
-          // Find associated task if it exists
-          const { data: tasks, error: tasksError } = await supabase
-            .from('tasks')
-            .select('id')
-            .eq('call_id', call_id)
-            .maybeSingle();
+          // Find associated task
+          const task = await db.findTaskByCallId(call_id);
+          console.log(`Associated task ID: ${task?.id || 'none'}`);
 
-          if (tasksError) {
-            console.error(`Error fetching task for call_id ${call_id}:`, tasksError);
+          // Insert conversation
+          await db.insertConversation(
+            conv.conversation_id,
+            call_id,
+            agent_id,
+            task?.id || null,
+            detail
+          );
+          
+          console.log(`Successfully inserted conversation: ${conv.conversation_id}`);
+
+          // Update task if found
+          if (task?.id) {
+            const taskStatus = await db.updateTaskStatus(task.id, conv.conversation_id, status);
+            console.log(`Successfully updated task ${task.id} with conversation_id ${conv.conversation_id} and status ${taskStatus}`);
           }
 
-          console.log(`Associated task ID: ${tasks?.id || 'none'}`);
-
-          // Map ElevenLabs conversation status to task status
-          let taskStatus;
-          switch (status) {
-            case 'done':
-              taskStatus = 'finished';
-              break;
-            case 'failed':
-              taskStatus = 'failed';
-              break;
-            default:
-              taskStatus = 'unknown';
-              console.log(`Unmapped conversation status "${detail.status}" defaulting to "unknown"`);
-          }
-
-          console.log(`Mapped conversation status "${detail.status}" to task status "${taskStatus}"`);
-
-          // Insert new conversation
-          const { error: insertError } = await supabase
-            .from('conversations')
-            .insert({
-              conversation_id: conv.conversation_id,
-              call_id,
-              agent_id,
-              task_id: tasks?.id || null,
-              status: detail.status,
-              transcript: detail.transcript,
-              metadata: detail.metadata,
-              analysis: detail.analysis
-            });
-
-          if (insertError) {
-            console.error(`Error inserting conversation ${conv.conversation_id}:`, insertError);
-          } else {
-            console.log(`Successfully inserted conversation: ${conv.conversation_id}`);
-          }
-
-          // Update task with conversation_id and new status if found
-          if (tasks?.id) {
-            console.log(`Updating task ${tasks.id} status to: ${taskStatus}`);
-            const { error: updateError } = await supabase
-              .from('tasks')
-              .update({ 
-                conversation_id: conv.conversation_id,
-                status: taskStatus 
-              })
-              .eq('id', tasks.id);
-              
-            if (updateError) {
-              console.error(`Error updating task ${tasks.id}:`, updateError);
-            } else {
-              console.log(`Successfully updated task ${tasks.id} with conversation_id ${conv.conversation_id} and status ${taskStatus}`);
-            }
-          }
+          newConversations.push(conv.conversation_id);
         } catch (convError) {
           console.error(`Error processing conversation ${conv.conversation_id}:`, convError);
         }
