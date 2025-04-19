@@ -40,10 +40,21 @@ export const useAgents = () => {
     return data;
   };
 
+  // Method to update agent details in ElevenLabs
+  const updateAgentInElevenLabs = async (elevenlabs_agent_id: string, updates: any) => {
+    const { data, error } = await supabase.functions.invoke('update-elevenlabs-agent', {
+      body: { elevenlabs_agent_id, updates }
+    });
+
+    if (error) throw error;
+    return data;
+  };
+
   return {
     agents,
     isLoading,
     refetch,
-    fetchAgentDetailsFromElevenLabs
+    fetchAgentDetailsFromElevenLabs,
+    updateAgentInElevenLabs
   };
 };

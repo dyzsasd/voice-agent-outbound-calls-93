@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,15 +7,18 @@ import { useTasks } from "@/hooks/useTasks";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 const Agent = () => {
   const { id } = useParams<{ id: string }>();
-  const { agents, fetchAgentDetailsFromElevenLabs } = useAgents();
+  const { agents, fetchAgentDetailsFromElevenLabs, updateAgentInElevenLabs } = useAgents();
   const { tasks, createTask } = useTasks(id);
   const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState("");
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [prompt, setPrompt] = useState("");
 
   const agent = agents?.find((a) => a.id === id);
 
@@ -26,6 +28,7 @@ const Agent = () => {
       fetchAgentDetailsFromElevenLabs(agent.elevenlabs_agent_id)
         .then((data) => {
           setAgentDetails(data);
+          setPrompt(data.conversation_config.agent.prompt.prompt || "");
         })
         .catch((error) => {
           console.error("Failed to fetch agent details:", error);
@@ -40,6 +43,36 @@ const Agent = () => {
         });
     }
   }, [agent, agentDetails, fetchAgentDetailsFromElevenLabs, toast]);
+
+  const handleUpdatePrompt = async () => {
+    if (!agent) return;
+    
+    setIsUpdating(true);
+    try {
+      const updates = {
+        conversation_config: {
+          agent: {
+            prompt: {
+              prompt: prompt
+            }
+          }
+        }
+      };
+
+      const updatedAgent = await updateAgentInElevenLabs(agent.elevenlabs_agent_id, updates);
+      setAgentDetails(updatedAgent);
+      toast({ title: "Agent updated successfully" });
+    } catch (error) {
+      console.error("Failed to update agent:", error);
+      toast({
+        title: "Failed to update agent",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,26 +99,33 @@ const Agent = () => {
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">{agent.name}</h1>
-          <p className="text-muted-foreground">ElevenLabs Agent ID: {agent.elevenlabs_agent_id}</p>
-          {agentDetails && (
-            <div className="mt-4">
-              <h2 className="text-xl font-semibold mb-2">Agent Details</h2>
-              <p className="mb-1">
-                <span className="font-medium">First Message:</span>{" "}
-                {agentDetails.conversation_config?.agent?.first_message || "No first message set"}
-              </p>
-              <p className="mb-1">
-                <span className="font-medium">Language:</span>{" "}
-                {agentDetails.conversation_config?.agent?.language || "English"}
-              </p>
-              <p className="mb-1">
-                <span className="font-medium">LLM:</span>{" "}
-                {agentDetails.conversation_config?.agent?.prompt?.llm || "Not specified"}
-              </p>
-            </div>
-          )}
-          {isLoadingDetails && <p className="text-sm text-muted-foreground mt-2">Loading agent details...</p>}
+          <p className="text-muted-foreground">Agent ID: {agent.elevenlabs_agent_id}</p>
         </div>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Agent Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">System Prompt</label>
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="Enter system prompt..."
+                  className="min-h-[100px]"
+                />
+              </div>
+              <Button 
+                onClick={handleUpdatePrompt}
+                disabled={isUpdating || !prompt}
+              >
+                {isUpdating ? "Updating..." : "Update Prompt"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="mb-8">
           <Card>
