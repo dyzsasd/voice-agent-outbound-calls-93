@@ -1,8 +1,8 @@
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
-import { Phone, Globe, Code, MessageSquare, Calendar } from "lucide-react";
+import { Phone, Calendar } from "lucide-react";
 import { CreateAgentDialog } from "@/components/CreateAgentDialog";
 import { useAgents } from "@/hooks/useAgents";
 import { formatDistance } from "date-fns";
@@ -35,38 +35,20 @@ const Profile = () => {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {agents?.map((agent) => (
               <Card key={agent.id} className="overflow-hidden">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2">
                     <Phone className="h-5 w-5" />
                     {agent.name}
                   </CardTitle>
-                  <CardDescription className="flex flex-col gap-1 mt-2">
-                    <div className="flex items-center text-xs">
-                      <Calendar className="h-3 w-3 mr-1" />
-                      Created {formatDistance(new Date(agent.created_at), new Date(), { addSuffix: true })}
-                    </div>
-                    <div className="flex items-center text-xs">
-                      <Globe className="h-3 w-3 mr-1" />
-                      Language: English (default)
-                    </div>
-                    <div className="flex items-center text-xs truncate">
-                      <Code className="h-3 w-3 mr-1 flex-shrink-0" />
-                      Model: GPT-4o Mini (default)
-                    </div>
-                  </CardDescription>
+                  <div className="flex items-center text-xs text-muted-foreground mt-2">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Updated {formatDistance(new Date(agent.updated_at), new Date(), { addSuffix: true })}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start gap-2 text-xs text-muted-foreground mb-3">
-                      <MessageSquare className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <span className="line-clamp-2">
-                        Default greeting
-                      </span>
-                    </div>
-                    <Button variant="outline" className="w-full" asChild>
-                      <a href={`/agent/${agent.id}`}>View Agent</a>
-                    </Button>
-                  </div>
+                  <Button variant="outline" className="w-full" asChild>
+                    <a href={`/agent/${agent.id}`}>View Agent</a>
+                  </Button>
                 </CardContent>
               </Card>
             ))}
