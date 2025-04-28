@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Set up auth state listener
@@ -25,7 +26,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (!session?.user) {
+        // Only redirect to auth page if not on home page and not authenticated
+        if (!session?.user && location.pathname !== "/" && location.pathname !== "/auth") {
           navigate("/auth");
         }
       }
@@ -36,13 +38,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (!session?.user) {
+      // Only redirect to auth page if not on home page and not authenticated
+      if (!session?.user && location.pathname !== "/" && location.pathname !== "/auth") {
         navigate("/auth");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   return (
     <AuthContext.Provider value={{ user, session }}>

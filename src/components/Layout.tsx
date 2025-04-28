@@ -11,6 +11,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  
+  const isHomePage = location.pathname === "/";
+  const shouldShowSidebar = user || !isHomePage;
 
   const handleLogout = async () => {
     try {
@@ -38,43 +41,45 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        <Sidebar>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <a href="/" className={location.pathname === "/" ? "text-primary" : ""}>
-                        <Home />
-                        <span>Home</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
-                        <User />
-                        <span>My Agents</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  {user && (
+        {shouldShowSidebar && (
+          <Sidebar>
+            <SidebarContent>
+              <SidebarGroup>
+                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton onClick={handleLogout}>
-                        <LogOut />
-                        <span>Logout</span>
+                      <SidebarMenuButton asChild>
+                        <a href="/" className={location.pathname === "/" ? "text-primary" : ""}>
+                          <Home />
+                          <span>Home</span>
+                        </a>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  )}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-        </Sidebar>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
+                          <User />
+                          <span>My Agents</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    {user && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton onClick={handleLogout}>
+                          <LogOut />
+                          <span>Logout</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
+          </Sidebar>
+        )}
         <main className="flex-1 p-6">
-          <SidebarTrigger />
+          {shouldShowSidebar && <SidebarTrigger />}
           {children}
         </main>
       </div>
