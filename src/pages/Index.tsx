@@ -4,13 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
-import { useAuth } from "@/components/AuthProvider";
-import { LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
-  const { user } = useAuth();
-  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast.success("Message sent! We'll get back to you soon.");
@@ -38,19 +34,10 @@ const Index = () => {
           </div>
         </section>
 
-        <div className="text-center mb-8 flex flex-wrap gap-4 justify-center">
+        <div className="text-center mb-8">
           <Button asChild className="mx-auto">
             <Link to="/auth">Get Started</Link>
           </Button>
-          
-          {!user && (
-            <Button variant="outline" asChild className="mx-auto flex items-center gap-2">
-              <Link to="/auth">
-                <LogIn size={18} />
-                <span>Sign In</span>
-              </Link>
-            </Button>
-          )}
         </div>
 
         <section className="max-w-xl mx-auto">

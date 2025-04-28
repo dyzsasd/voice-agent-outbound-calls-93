@@ -1,7 +1,7 @@
 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, LogOut, User } from "lucide-react";
+import { Home, LogIn, LogOut, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,9 +12,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  const isHomePage = location.pathname === "/";
-  const shouldShowSidebar = user || !isHomePage;
-
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -41,45 +38,55 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        {shouldShowSidebar && (
-          <Sidebar>
-            <SidebarContent>
-              <SidebarGroup>
-                <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <a href="/" className={location.pathname === "/" ? "text-primary" : ""}>
-                          <Home />
-                          <span>Home</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
-                          <User />
-                          <span>My Agents</span>
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {user && (
+        <Sidebar>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <a href="/" className={location.pathname === "/" ? "text-primary" : ""}>
+                        <Home />
+                        <span>Home</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  
+                  {user ? (
+                    <>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
+                            <User />
+                            <span>My Agents</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton onClick={handleLogout}>
                           <LogOut />
                           <span>Logout</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    )}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </SidebarContent>
-          </Sidebar>
-        )}
+                    </>
+                  ) : (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild>
+                        <a href="/auth" className={location.pathname === "/auth" ? "text-primary" : ""}>
+                          <LogIn />
+                          <span>Sign In</span>
+                        </a>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
         <main className="flex-1 p-6">
-          {shouldShowSidebar && <SidebarTrigger />}
+          <SidebarTrigger />
           {children}
         </main>
       </div>
