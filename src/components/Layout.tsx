@@ -1,7 +1,7 @@
 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, LogIn, LogOut, User, PhoneCall, Bell, Settings } from "lucide-react";
+import { Home, LogIn, LogOut, User, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,22 +61,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
                             <User />
                             <span>My Agents</span>
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <a href="#" className={location.pathname === "/calls" ? "text-primary" : ""}>
-                            <PhoneCall />
-                            <span>Call Management</span>
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild>
-                          <a href="#" className={location.pathname === "/notifications" ? "text-primary" : ""}>
-                            <Bell />
-                            <span>Notifications</span>
                           </a>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
