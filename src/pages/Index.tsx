@@ -7,11 +7,41 @@ import Layout from "@/components/Layout";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { PhoneCall, Users, BarChart } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Message sent! We'll get back to you soon.");
+    setIsSubmitting(true);
+
+    try {
+      // Call our edge function to send the email
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: { name, email, message }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Reset the form
+      setName("");
+      setEmail("");
+      setMessage("");
+      
+      toast.success("Message sent! We'll get back to you soon.");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const features = [
@@ -65,17 +95,42 @@ const Index = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-2 text-neutral-800">Name</label>
-              <Input id="name" required className="border-muted" />
+              <Input 
+                id="name" 
+                required 
+                className="border-muted" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-2 text-neutral-800">Email</label>
-              <Input id="email" type="email" required className="border-muted" />
+              <Input 
+                id="email" 
+                type="email" 
+                required 
+                className="border-muted" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div>
               <label htmlFor="message" className="block text-sm font-medium mb-2 text-neutral-800">Message</label>
-              <Textarea id="message" required className="min-h-[120px] border-muted" />
+              <Textarea 
+                id="message" 
+                required 
+                className="min-h-[120px] border-muted" 
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
             </div>
-            <Button type="submit" className="w-full">Send Message</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Sending..." : "Send Message"}
+            </Button>
           </form>
         </section>
       </div>
