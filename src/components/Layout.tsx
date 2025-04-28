@@ -1,11 +1,11 @@
 
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Home, LogIn, LogOut, User } from "lucide-react";
+import { Home, LogIn, LogOut, User, PhoneCall, Bell, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -17,29 +17,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        toast({
-          title: "Logout Error",
+        toast.error("Logout Error", {
           description: error.message,
-          variant: "destructive"
         });
         return;
       }
 
+      toast.success("Logged out successfully");
       navigate("/auth");
     } catch (error) {
-      toast({
-        title: "Logout Error",
+      toast.error("Logout Error", {
         description: "An unexpected error occurred during logout.",
-        variant: "destructive"
       });
     }
   };
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background-gray">
         <Sidebar>
           <SidebarContent>
+            <div className="p-6">
+              <h1 className="text-xl font-bold text-primary">VoiceAgent</h1>
+              <p className="text-xs text-neutral mt-1">Intelligent Voice Calls</p>
+            </div>
             <SidebarGroup>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -60,6 +61,30 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           <a href="/profile" className={location.pathname === "/profile" ? "text-primary" : ""}>
                             <User />
                             <span>My Agents</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <a href="#" className={location.pathname === "/calls" ? "text-primary" : ""}>
+                            <PhoneCall />
+                            <span>Call Management</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <a href="#" className={location.pathname === "/notifications" ? "text-primary" : ""}>
+                            <Bell />
+                            <span>Notifications</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild>
+                          <a href="#" className={location.pathname === "/settings" ? "text-primary" : ""}>
+                            <Settings />
+                            <span>Settings</span>
                           </a>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -86,8 +111,19 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </SidebarContent>
         </Sidebar>
         <main className="flex-1 p-6">
-          <SidebarTrigger />
-          {children}
+          <div className="flex justify-between items-center mb-6">
+            <SidebarTrigger className="h-10 w-10" />
+            {user && (
+              <div className="flex items-center gap-4">
+                <div className="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center">
+                  {user.email?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
